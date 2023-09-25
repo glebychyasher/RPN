@@ -10,11 +10,11 @@ class Mather {
         "*" : 2,
         "/" : 2,
         "^" : 3,
-        "~" : 4, //унарный минус
-        "&" : 3 //логарифм
+        "~" : 4, //unary minus
+        "&" : 3 //logarithm
     ]
     
-    private enum ThrowableError: Error {
+    private enum ThrowableError: Error { //
         case badError(howBad: String)
     }
     
@@ -32,7 +32,7 @@ class Mather {
                 pos += 1
                 isDecimal = true
             } else if digit == "." && isDecimal == true {
-                throw ThrowableError.badError(howBad: "Удалите лишние точки")
+                throw ThrowableError.badError(howBad: "Delete excessive dots")
             } else {
                 pos-=1
                 break
@@ -46,15 +46,18 @@ class Mather {
     
     private func toPostfix(from infixExpr1: String) throws -> String {
         if infixExpr1.filter({$0 == "("}).count != infixExpr1.filter({$0 == ")"}).count {
-            throw ThrowableError.badError(howBad: "Неверное кол-во скобок")
+            throw ThrowableError.badError(howBad: "The number of brackets doesn't match")
         }
         var postfixString = ""
-        var infixExpr: String
+        var infixExpr = infixExpr1
         var stack: [Character] = []
         var index = 0
-        infixExpr = infixExpr1.replacingOccurrences(of: "log(", with: "(").replacingOccurrences(of: ",", with: " & ")
+        let regex = try! NSRegularExpression(pattern: "log\\((.*?),(.*?)\\)")
+        while infixExpr.contains(try! Regex("log\\((.*?),(.*?)\\)")){ 
+            infixExpr = regex.stringByReplacingMatches(in: infixExpr, range: NSRange(infixExpr.startIndex..., in: infixExpr), withTemplate: "($1&$2)")
+        }
         if operationPriority[infixExpr.last ?? "0"] != nil {
-            throw ThrowableError.badError(howBad: "Оператор на последнем месте ")
+            throw ThrowableError.badError(howBad: "The operator is on the last position")
         }
         while index < infixExpr.count {
             let char = infixExpr[infixExpr.index(infixExpr.startIndex, offsetBy: index)]
@@ -62,12 +65,12 @@ class Mather {
                 let charPrevious = infixExpr[infixExpr.index(infixExpr.startIndex, offsetBy: index - 1)]
                 if operationPriority[char] != nil && operationPriority[charPrevious] != nil && char == charPrevious && char != "(" {
                     print(String(char) + " " + String(charPrevious))
-                    throw ThrowableError.badError(howBad: "Повторяющиеся операторы")
+                    throw ThrowableError.badError(howBad: "Repetitive operators")
                 }
             }
             if !char.isNumber && operationPriority[char] == nil && char != ")" && char != " " && char != "." { //если не число и не оператор
                 print(String(char))
-                throw ThrowableError.badError(howBad: "Посторонние символы в строке")
+                throw ThrowableError.badError(howBad: "Foreign characters in a string")
             }
             if char.isNumber || char == "." {
                 let (stringNumber, indexGot) = try getStringNumber(from: infixExpr, in: index)
@@ -109,14 +112,14 @@ class Mather {
             return first * second
         case "/":
             if second == 0 {
-                throw ThrowableError.badError(howBad: "Делитель равен нулю")
+                throw ThrowableError.badError(howBad: "Division by zero")
             }
             return first / second
         case "^":
             return pow(first, second)
         case "&":
-            if (second <= 0 || first < 0 || first == 1) {
-                throw ThrowableError.badError(howBad: "Неправильные числа в логарифме")
+            if (second <= 0 || first <= 0 || first == 1) {
+                throw ThrowableError.badError(howBad: "Wrong numbers in the logarithm")
             }
             return log(second) / log(first)
         default:
